@@ -225,15 +225,15 @@ export class ConnectionStore {
 	 * @param conn the connection to add
 	 * @returns a Promise that returns when the connection was saved
 	 */
-	public addRecentConnection(conn: IConnectionProfile): Promise<void> {
+	public addRecentConnection(conn: IConnectionProfile, isEdit: boolean = false, oldProfileId?: string): Promise<void> {
 		const maxConnections = this.getMaxRecentConnectionsCount();
-		return this.addConnectionToState(conn, maxConnections, conn.savePassword);
+		return this.addConnectionToState(conn, isEdit, oldProfileId, maxConnections, conn.savePassword);
 	}
 
-	private addConnectionToState(conn: IConnectionProfile, maxConnections?: number, savePassword?: boolean): Promise<void> {
+	private addConnectionToState(conn: IConnectionProfile, isEdit: boolean, oldProfileId?: string, maxConnections?: number, savePassword?: boolean): Promise<void> {
 		// Get all profiles
 		const configValues = this.convertConfigValuesToConnectionProfiles(this.mru.slice());
-		let configToSave = this.addToConnectionList(conn, configValues);
+		let configToSave = this.addToConnectionList(conn, isEdit, configValues, oldProfileId);
 		if (maxConnections) {
 			// Remove last element if needed
 			if (configToSave.length > maxConnections) {
@@ -244,16 +244,22 @@ export class ConnectionStore {
 		return savePassword ? this.doSavePassword(conn).then() : Promise.resolve();
 	}
 
-	private addToConnectionList(conn: IConnectionProfile, list: ConnectionProfile[]): IConnectionProfile[] {
+	private addToConnectionList(conn: IConnectionProfile, isEdit: boolean, list: ConnectionProfile[], oldProfileId?: string): IConnectionProfile[] {
 		const savedProfile = this.getProfileWithoutPassword(conn);
 
 		// Remove the connection from the list if it already exists
 		list = list.filter(value => {
-			let equal = value && value.connectionName === savedProfile.connectionName;
-			equal = equal && value.getConnectionInfoId(false) === savedProfile.getConnectionInfoId(false);
-			if (equal && savedProfile.saveProfile) {
-				equal = value.groupId === savedProfile.groupId ||
-					ConnectionProfileGroup.sameGroupName(value.groupFullName, savedProfile.groupFullName);
+			let equal = value && true;
+			if (isEdit && !!oldProfileId) {
+				equal === equal && value.id === oldProfileId;
+			}
+			else {
+				equal = value && value.connectionName === savedProfile.connectionName;
+				equal = equal && value.getConnectionInfoId(false) === savedProfile.getConnectionInfoId(false);
+				if (equal && savedProfile.saveProfile) {
+					equal = value.groupId === savedProfile.groupId ||
+						ConnectionProfileGroup.sameGroupName(value.groupFullName, savedProfile.groupFullName);
+				}
 			}
 			return !equal;
 		});

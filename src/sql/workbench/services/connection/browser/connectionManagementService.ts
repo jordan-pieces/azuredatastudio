@@ -609,7 +609,7 @@ export class ConnectionManagementService extends Disposable implements IConnecti
 				} else {
 					// Currently this could potentially throw an error because it expects there to always be
 					// a connection management info. See https://github.com/microsoft/azuredatastudio/issues/16556
-					this.tryAddActiveConnection(connectionMgmtInfo, connection, options.saveTheConnection);
+					this.tryAddActiveConnection(connectionMgmtInfo, connection, options.saveTheConnection, isEdit, options.params.oldProfileId);
 
 					if (callbacks.onConnectSuccess) {
 						callbacks.onConnectSuccess(options.params, connectionResult.connectionProfile);
@@ -1444,9 +1444,9 @@ export class ConnectionManagementService extends Disposable implements IConnecti
 	/**
 	 * Add a connection to the active connections list.
 	 */
-	private tryAddActiveConnection(connectionManagementInfo: ConnectionManagementInfo, newConnection: interfaces.IConnectionProfile, addToMru: boolean): void {
+	private tryAddActiveConnection(connectionManagementInfo: ConnectionManagementInfo, newConnection: interfaces.IConnectionProfile, addToMru: boolean, isEdit: boolean, oldProfileId: string): void {
 		if (newConnection && addToMru) {
-			this._connectionStore.addRecentConnection(newConnection)
+			this._connectionStore.addRecentConnection(newConnection, isEdit, oldProfileId)
 				.then(() => {
 					connectionManagementInfo.connectHandler(true);
 				}, err => {
