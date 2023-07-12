@@ -567,7 +567,8 @@ export class ConnectionManagementService extends Disposable implements IConnecti
 			}
 			else {
 				let originalInfo = this._connectionStatusManager.findConnectionByProfileId(options.params.oldProfileId);
-				this.disconnect(originalInfo.connectionProfile);
+				let originalUri = Utils.generateUri(originalInfo.connectionProfile);
+				this._connectionStatusManager.deleteConnection(originalUri);
 			}
 		}
 
