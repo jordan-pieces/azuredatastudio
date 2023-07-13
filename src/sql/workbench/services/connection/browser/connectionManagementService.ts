@@ -539,6 +539,35 @@ export class ConnectionManagementService extends Disposable implements IConnecti
 		return this.connectWithOptions(connection, uri, options, callbacks);
 	}
 
+	private checkForChildConnections(inputConnection: interfaces.IConnectionProfile): ConnectionProfile[] {
+		let childConnections = [];
+		let storedConnections = this.getStoredConnections();
+		let activeConnections = this.getActiveConnections();
+		let mainDatabaseName = inputConnection.databaseName;
+		let mainDisplayDatabaseName = inputConnection.options['databaseDisplayName']
+		let testProfile = new ConnectionProfile(this._capabilitiesService, inputConnection);
+
+		storedConnections = storedConnections.filter(inputProfile => {
+			testProfile.databaseName = inputProfile.databaseName;
+			testProfile.options['databaseDisplayName'] = inputProfile.options['databaseDisplayName'];
+			return inputProfile.databaseName !== mainDatabaseName && inputProfile.matches(testProfile)
+		});
+
+		testProfile.databaseName = mainDatabaseName;
+		testProfile.databaseName = mainDisplayDatabaseName;
+
+		for (let i = 0; i < activeConnections.length; i++) {
+			testProfile.databaseName = activeConnections[i].databaseName
+			testProfile.options['databaseDisplayName'] = activeConnections[i].options['databaseDisplayName'];
+			if (activeConnections[i].matches(testProfile)
+				&& activeConnections[i].databaseName !== mainDatabaseName
+				&& storedConnections.filter(inputProfile => inputProfile.matches(testProfile)).length === 0) {
+				childConnections.push(activeConnections[i]);
+			}
+		}
+
+		return childConnections;
+	}
 
 	private duplicateEditErrorMessage(connection: interfaces.IConnectionProfile): void {
 		let groupNameBase = ConnectionProfile.displayIdSeparator + 'groupName' + ConnectionProfile.displayNameValueSeparator;
@@ -569,18 +598,18 @@ export class ConnectionManagementService extends Disposable implements IConnecti
 				// Remove the original connection entry from connectionStatusManager if not used by dashboard or notebook.
 				// This affects the title generation, so it will need to be cleaned.
 				let originalInfo = this._connectionStatusManager.findConnectionByProfileId(options.params.oldProfileId);
-				let originalUri = Utils.generateUri(originalInfo.connectionProfile);
-				let dashboardUri = Utils.generateUri(originalInfo.connectionProfile, 'dashboard');
-				let notebookUri = Utils.generateUri(originalInfo.connectionProfile, 'notebook');
-				let hasDashboard = this._connectionStatusManager.findConnection(dashboardUri);
-				let hasNotebook = this._connectionStatusManager.findConnection(notebookUri);
-				if (hasDashboard || hasNotebook) {
-					// Still need to keep the connection open for any dashboard or notebook window open.
-					this._connectionStatusManager.deleteConnection(originalUri);
-				}
-				else {
-					// Safe to disconnect, insights can reconnect if needed.
-					this.disconnect(originalInfo.connectionProfile);
+				if (originalInfo) {
+					let originalUri = Utils.generateUri(originalInfo.connectionProfile);
+					if (originalUri !== Utils.generateUri(connection)) {
+						this.disconnect(originalUri);
+						this._connectionStatusManager.deleteConnection(originalUri);
+						//handle query editor and edit data editor temporary connections
+						let childConnections = this.checkForChildConnections(originalInfo.connectionProfile);
+						for (let i = 0; i < childConnections.length; i++) {
+							this.disconnect(childConnections[i]);
+						}
+
+					}
 				}
 			}
 		}
@@ -627,7 +656,7 @@ export class ConnectionManagementService extends Disposable implements IConnecti
 				} else {
 					// Currently this could potentially throw an error because it expects there to always be
 					// a connection management info. See https://github.com/microsoft/azuredatastudio/issues/16556
-					this.tryAddActiveConnection(connectionMgmtInfo, connection, options.saveTheConnection, isEdit, options.params.oldProfileId);
+					this.tryAddActiveConnection(connectionMgmtInfo, connection, options.saveTheConnection, isEdit, options.params?.oldProfileId);
 
 					if (callbacks.onConnectSuccess) {
 						callbacks.onConnectSuccess(options.params, connectionResult.connectionProfile);
@@ -2064,6 +2093,40 @@ export class ConnectionManagementService extends Disposable implements IConnecti
 				});
 			}
 		}
+		return connections;
+	}
+
+	/**
+	 * Get stored connections only such as recent connections and saved connections.
+	 * @returns array of connections
+	 **/
+	private getStoredConnections(): ConnectionProfile[] {
+		// 1. Active Connections
+		const connections = [];
+
+		const connectionExists: (conn: ConnectionProfile) => boolean = (conn) => {
+			return connections.find(existingConnection => existingConnection.id === conn.id) !== undefined;
+		};
+
+		// 2. Recent Connections
+		this.getRecentConnections().forEach(connection => {
+			if (!connectionExists(connection)) {
+				connections.push(connection);
+			}
+		});
+
+		// 3. Saved Connections
+		const groups = this.getConnectionGroups();
+		if (groups && groups.length > 0) {
+			groups.forEach(group => {
+				this.getConnectionsInGroup(group).forEach(savedConnection => {
+					if (!connectionExists(savedConnection)) {
+						connections.push(savedConnection);
+					}
+				});
+			});
+		}
+
 		return connections;
 	}
 
