@@ -566,9 +566,22 @@ export class ConnectionManagementService extends Disposable implements IConnecti
 				this.duplicateEditErrorMessage(connection);
 			}
 			else {
+				// Remove the original connection entry from connectionStatusManager if not used by dashboard or notebook.
+				// This affects the title generation, so it will need to be cleaned.
 				let originalInfo = this._connectionStatusManager.findConnectionByProfileId(options.params.oldProfileId);
 				let originalUri = Utils.generateUri(originalInfo.connectionProfile);
-				this._connectionStatusManager.deleteConnection(originalUri);
+				let dashboardUri = Utils.generateUri(originalInfo.connectionProfile, 'dashboard');
+				let notebookUri = Utils.generateUri(originalInfo.connectionProfile, 'notebook');
+				let hasDashboard = this._connectionStatusManager.findConnection(dashboardUri);
+				let hasNotebook = this._connectionStatusManager.findConnection(notebookUri);
+				if (hasDashboard || hasNotebook) {
+					// Still need to keep the connection open for any dashboard or notebook window open.
+					this._connectionStatusManager.deleteConnection(originalUri);
+				}
+				else {
+					// Safe to disconnect, insights can reconnect if needed.
+					this.disconnect(originalInfo.connectionProfile);
+				}
 			}
 		}
 
