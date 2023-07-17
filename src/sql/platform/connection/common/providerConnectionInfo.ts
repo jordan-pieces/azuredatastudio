@@ -175,6 +175,9 @@ export class ProviderConnectionInfo implements azdata.ConnectionInfo {
 
 	public get serverInfo(): string {
 		let value = this.getServerInfo();
+		if (this.connectionName) {
+			value = this.connectionName + ' - ' + value;
+		}
 		if (this.serverCapabilities?.useFullOptions) {
 			value += this.getNonDefaultOptionsString();
 		}
