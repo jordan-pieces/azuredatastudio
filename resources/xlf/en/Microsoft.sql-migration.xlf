@@ -2506,6 +2506,9 @@
     <trans-unit id="sql.migration.sku.azureRecommendation.status.autoRefreshTimer">
       <source xml:lang="en">Time before next SKU recommendation update: {0} minute(s).</source>
     </trans-unit>
+    <trans-unit id="sql.migration.select.skip.assessment.check.to.continue">
+      <source xml:lang="en">To continue, check skip assessment option.</source>
+    </trans-unit>
     <trans-unit id="sql.migration.missing.targetPassword.error">
       <source xml:lang="en">To continue, enter a valid target password.</source>
     </trans-unit>
