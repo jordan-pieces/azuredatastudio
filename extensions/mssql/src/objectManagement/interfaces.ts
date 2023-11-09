@@ -460,6 +460,7 @@ export interface Database extends ObjectManagement.SqlObject {
 	filegroups?: FileGroup[];
 	queryStoreOptions?: QueryStoreOptions;
 	backupEncryptors?: BackupEncryptor[];
+	restoreOptions?: RestoreOptions;
 }
 
 export interface DatabaseViewInfo extends ObjectManagement.ObjectViewInfo<Database> {
@@ -489,6 +490,7 @@ export interface DatabaseViewInfo extends ObjectManagement.ObjectViewInfo<Databa
 	sizeBasedCleanupModeOptions?: string[];
 	staleThresholdOptions?: string[];
 	serverFilestreamAccessLevel?: FileStreamEffectiveLevel;
+	restoreDatabaseInfo?: RestoreDatabaseInfo;
 }
 
 export interface QueryStoreOptions {
@@ -505,6 +507,59 @@ export interface QueryStoreOptions {
 	currentStorageSizeInMB: number;
 }
 
+export interface RestoreDatabaseInfo {
+	sourceDatabaseNames: string[];
+	targetDatabaseNames: string[];
+	recoveryStateOptions: CategoryValue[];
+}
+
+export interface CategoryValue {
+	displayName: string;
+	name: string;
+}
+
+export interface RestoreOptions {
+	restorePlanResponse: RestorePlanResponse;
+}
+
+export interface RestorePlanResponse {
+	sessionId: string;
+	backupSetsToRestore: DatabaseFileInfo[];
+	canRestore: boolean;
+	errorMessage?: string | undefined;
+	dbFiles: RestoreDatabaseFileInfo[];
+	databaseNamesFromBackupSets: string[];
+	planDetails: { [key: string]: RestorePlanDetailInfo };
+}
+
+export interface DatabaseFileInfo {
+	properties: LocalizedPropertyInfo[];
+	id: string;
+	isSelected: boolean;
+}
+
+export interface RestorePlanDetailInfo {
+	name: string;
+	currentValue: any;
+	isReadOnly: boolean;
+	isVisible: boolean;
+	defaultValue: any;
+}
+
+export interface LocalizedPropertyInfo {
+	propertyName: string;
+	propertyValue: string;
+	propertyDisplayName: string;
+	propertyValueDisplayName: string;
+}
+
+export interface RestoreDatabaseFileInfo {
+	fileType: string;
+	logicalFileName: string;
+	originalFileName: string;
+	restoreAsFileName: string;
+}
+
 export interface QueryStoreCapturePolicyOptions {
 	executionCount: number;
 	staleThreshold: string;
@@ -516,6 +571,7 @@ export interface BackupEncryptor {
 	encryptorType: number;
 	encryptorName: string;
 }
+
 
 export interface DatabaseScopedConfigurationsInfo {
 	id: number;

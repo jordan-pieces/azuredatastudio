@@ -3,13 +3,12 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import * as azdata from 'azdata';
-import { ApplicationRoleViewInfo, AuthenticationType, DatabaseRoleViewInfo, DatabaseViewInfo, LoginViewInfo, SecurablePermissions, SecurableTypeMetadata, ServerRoleViewInfo, User, UserType, UserViewInfo } from './interfaces';
 import * as Utils from '../utils';
 import * as constants from '../constants';
 import * as contracts from '../contracts';
-
+import { ApplicationRoleViewInfo, AuthenticationType, DatabaseRoleViewInfo, DatabaseViewInfo, LoginViewInfo, RestorePlanResponse, SecurablePermissions, SecurableTypeMetadata, ServerRoleViewInfo, User, UserType, UserViewInfo } from './interfaces';
 import { BaseService, ISqlOpsFeature, SqlOpsDataClient } from 'dataprotocol-client';
-import { ObjectManagement, IObjectManagementService, DatabaseFileData, BackupInfo } from 'mssql';
+import { ObjectManagement, IObjectManagementService, DatabaseFileData, BackupInfo, RestoreParams } from 'mssql';
 import { ClientCapabilities } from 'vscode-languageclient';
 import { AppContext } from '../appContext';
 import { BackupResponse } from 'azdata';
@@ -86,6 +85,11 @@ export class ObjectManagementService extends BaseService implements IObjectManag
 	async backupDatabase(connectionUri: string, backupInfo: BackupInfo, taskExecutionMode: azdata.TaskExecutionMode): Promise<BackupResponse> {
 		const params: contracts.BackupDatabaseRequestParams = { ownerUri: connectionUri, backupInfo, taskExecutionMode: taskExecutionMode };
 		return this.runWithErrorHandling(contracts.BackupDatabaseRequest.type, params);
+	}
+
+	async getRestorePlan(restoreParams: RestoreParams): Promise<RestorePlanResponse> {
+		const params: contracts.RestoreParams = restoreParams;
+		return this.runWithErrorHandling(contracts.RestorePlanRequest.type, params);
 	}
 
 	async getDataFolder(connectionUri: string): Promise<string> {
@@ -296,6 +300,10 @@ export class TestObjectManagementService implements IObjectManagementService {
 
 	async getBackupFolder(connectionUri: string): Promise<string> {
 		return this.delayAndResolve('');
+	}
+
+	async getRestorePlan(restoreParams: RestoreParams): Promise<RestorePlanResponse> {
+		return this.delayAndResolve({ result: true, taskId: 0 });
 	}
 
 	async getAssociatedFiles(connectionUri: string, primaryFilePath: string): Promise<string[]> {
